@@ -1,3 +1,4 @@
+# -*- tab-width: 4; ruby-indent-level: 4; indent-tabs-mode: t -*-
 # This has to be a separate type to enable collecting
 Puppet::Type.newtype(:mysql_grant) do
 	@doc = "Manage a database user's rights."
@@ -72,6 +73,14 @@ Puppet::Type.newtype(:mysql_grant) do
 			end
 		end
 
+	end
+
+	autorequire(:service) do
+		["mysql"]
+	end
+
+	autorequire(:file) do
+		["/root/.my.cnf"]
 	end
 end
 

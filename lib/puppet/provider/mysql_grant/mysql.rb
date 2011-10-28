@@ -1,3 +1,4 @@
+# -*- tab-width: 4; ruby-indent-level: 4; indent-tabs-mode: t -*-
 # A grant is either global or per-db. This can be distinguished by the syntax
 # of the name:
 # 	user@host => global
@@ -11,7 +12,7 @@ MYSQL_USER_PRIVS = [ :select_priv, :insert_priv, :update_priv, :delete_priv,
 	:show_db_priv, :super_priv, :create_tmp_table_priv, :lock_tables_priv,
 	:execute_priv, :repl_slave_priv, :repl_client_priv, :create_view_priv,
 	:show_view_priv, :create_routine_priv, :alter_routine_priv,
-	:create_user_priv, :event_priv, :trigger_priv
+	:create_user_priv
 ]
 
 MYSQL_DB_PRIVS = [ :select_priv, :insert_priv, :update_priv, :delete_priv,
@@ -24,11 +25,19 @@ Puppet::Type.type(:mysql_grant).provide(:mysql) do
 
 	desc "Uses mysql as database."
 
-	commands :mysql => '/usr/bin/mysql'
-	commands :mysqladmin => '/usr/bin/mysqladmin'
+	# this is a bit of a hack.
+	# Since puppet evaluates what provider to use at start time rather than run time
+	# we can't specify that commands will exist. Instead we call manually.
+	# I would make these call execute directly, but execpipe needs the path
+	def mysqladmin
+		'/usr/bin/mysqladmin'
+	end
+	def mysql
+		'/usr/bin/mysql'
+	end
 
 	def mysql_flush 
-		mysqladmin "flush-privileges"
+		execute([mysqladmin, "flush-privileges"])
 	end
 
 	# this parses the
@@ -56,20 +65,20 @@ Puppet::Type.type(:mysql_grant).provide(:mysql) do
 			name = split_name(@resource[:name])
 			case name[:type]
 			when :user
-				mysql "mysql", "-e", "INSERT INTO user (host, user) VALUES ('%s', '%s')" % [
+				execute [mysql, "mysql", "-e", "INSERT INTO user (host, user) VALUES ('%s', '%s')" % [
 					name[:host], name[:user],
-				]
+				]]
 			when :db
-				mysql "mysql", "-e", "INSERT INTO db (host, user, db) VALUES ('%s', '%s', '%s')" % [
+				execute [mysql, "mysql", "-e", "INSERT INTO db (host, user, db) VALUES ('%s', '%s', '%s')" % [
 					name[:host], name[:user], name[:db],
-				]
+				]]
 			end
 			mysql_flush
 		end
 	end
 
 	def destroy
-		mysql "mysql", "-e", "REVOKE ALL ON '%s'.* FROM '%s@%s'" % [ @resource[:privileges], @resource[:database], @resource[:name], @resource[:host] ]
+		execute [mysql, "mysql", "-e", "REVOKE ALL ON '%s'.* FROM '%s@%s'" % [ @resource[:privileges], @resource[:database], @resource[:name], @resource[:host] ]]
 	end
 	
 	def row_exists?
@@ -78,7 +87,7 @@ Puppet::Type.type(:mysql_grant).provide(:mysql) do
 		if name[:type] == :db
 			fields << :db
 		end
-		not mysql( "mysql", "-NBe", 'SELECT "1" FROM %s WHERE %s' % [ name[:type], fields.map do |f| "%s = '%s'" % [f, name[f]] end.join(' AND ')]).empty?
+		not execute([mysql, "mysql", "-NBe", 'SELECT "1" FROM %s WHERE %s' % [ name[:type], fields.map do |f| "%s = '%s'" % [f, name[f]] end.join(' AND ')]]).empty?
 	end
 
 	def all_privs_set?
@@ -100,9 +109,9 @@ Puppet::Type.type(:mysql_grant).provide(:mysql) do
 
 		case name[:type]
 		when :user
-			privs = mysql "mysql", "-Be", 'select * from user where user="%s" and host="%s"' % [ name[:user], name[:host] ]
+			privs = execute [mysql, "mysql", "-Be", 'select * from user where user="%s" and host="%s"' % [ name[:user], name[:host] ]]
 		when :db
-			privs = mysql "mysql", "-Be", 'select * from db where user="%s" and host="%s" and db="%s"' % [ name[:user], name[:host], name[:db] ]
+			privs = execute [mysql, "mysql", "-Be", 'select * from db where user="%s" and host="%s" and db="%s"' % [ name[:user], name[:host], name[:db] ]]
 		end
 
 		if privs.match(/^$/) 
@@ -135,7 +144,7 @@ Puppet::Type.type(:mysql_grant).provide(:mysql) do
 			all_privs = MYSQL_USER_PRIVS
 		when :db
 			stmt = 'update db set '
-			where = ' where user="%s" and host="%s" and db="%s"' % [ name[:user], name[:host], name[:db] ]
+			where = ' where user="%s" and host="%s"' % [ name[:user], name[:host] ]
 			all_privs = MYSQL_DB_PRIVS
 		end
 
@@ -148,7 +157,7 @@ Puppet::Type.type(:mysql_grant).provide(:mysql) do
 		# puts "set:", set
 		stmt = stmt << set << where
 
-		mysql "mysql", "-Be", stmt
+		execute [mysql, "mysql", "-Be", stmt]
 		mysql_flush
 	end
 end
