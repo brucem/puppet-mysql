@@ -6,11 +6,11 @@
 #
 class mysql::client {
 
-  package { "mysql-client":
+  package { 'mysql-client':
     ensure => present,
-    name   => $operatingsystem ? {
-      /Debian|Ubuntu|kFreeBSD/ => "mysql-client",
-      /RedHat|Fedora|CentOS/   => "mysql",
+    name   => $::operatingsystem ? {
+      /Debian|Ubuntu|kFreeBSD/ => 'mysql-client',
+      /RedHat|Fedora|CentOS/   => 'mysql',
     },
   }
 }

@@ -6,41 +6,42 @@
 # mysqldump --all-databases. Backups will be stored in /var/backups/mysql.
 #
 # Attributes:
-# - $mysqldump_retention: defines if backup rotate on a weekly, monthly or yearly
-#   basis. Accepted values: "week", "month", "year". Defaults to "week".
-# $subversion_backupdir = "/var/backups/subversion"
+# - $mysqldump_retention: defines if backup rotate on a weekly, monthly or
+#     yearly basis. Accepted values: 'week', 'month', 'year'. Defaults
+#     to 'week'.
+# $subversion_backupdir = '/var/backups/subversion'
 class mysql::backup {
 
   include mysql::common
   include mysql::params
 
-  if $mysqldump_retention {} else { $mysqldump_retention = "week" }
+  if $mysqldump_retention {} else { $mysqldump_retention = 'week' }
 
   $data_dir = $mysql::params::data_dir
   $backup_dir = $mysql::params::backup_dir
 
-  file { "${backup_dir}":
+  file { $backup_dir:
     ensure  => directory,
-    owner   => "root",
-    group   => "mysql-admin",
-    mode    => 750,
-    require => Group["mysql-admin"]
+    owner   => 'root',
+    group   => 'mysql-admin',
+    mode    => '0750',
+    require => Group['mysql-admin']
   }
 
-  file { "/usr/local/bin/mysql-backup.sh":
+  file { '/usr/local/bin/mysql-backup.sh':
     ensure  => present,
-    content => template("mysql/mysql-backup.sh.erb"),
-    owner   => "root",
-    group   => "root",
-    mode    => 555,
+    content => template('mysql/mysql-backup.sh.erb'),
+    owner   => 'root',
+    group   => 'root',
+    mode    => '0555',
   }
 
-  cron { "mysql-backup":
+  cron { 'mysql-backup':
     command => "/usr/local/bin/mysql-backup.sh ${mysqldump_retention}",
-    user    => "root",
+    user    => 'root',
     hour    => 2,
     minute  => 0,
-    require => [File["${backup_dir}"], File["/usr/local/bin/mysql-backup.sh"]],
+    require => [File[$backup_dir], File['/usr/local/bin/mysql-backup.sh']],
   }
 
 }

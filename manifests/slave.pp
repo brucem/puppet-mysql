@@ -5,15 +5,15 @@ class mysql::slave inherits mysql::slave::common {
 
   # binlog_format comes with MySQL 5.1+
   # RHEL6+, Debian6+
-  case  $operatingsystem {
+  case  $::operatingsystem {
 
     Debian: {
-      case $lsbmajdistrelease {
+      case $::lsbmajdistrelease {
 
-        "4","5": { }
+        '4','5': { }
 
         default: {
-          Augeas["my.cnf/slave-replication"] {
+          Augeas['my.cnf/slave-replication'] {
             changes => [
               "set binlog_format ${mysql::params::replication_binlog_format}"
             ]
@@ -24,12 +24,12 @@ class mysql::slave inherits mysql::slave::common {
     } # Debian
 
     RedHat,CentOS: {
-      case $lsbmajdistrelease {
+      case $::lsbmajdistrelease {
 
-        "4","5": { }
+        '4','5': { }
 
         default: {
-          Augeas["my.cnf/slave-replication"] {
+          Augeas['my.cnf/slave-replication'] {
             changes => [
               "set binlog_format ${mysql::params::replication_binlog_format}"
             ]

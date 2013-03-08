@@ -1,3 +1,4 @@
+#
 class mysql::administration {
 
   include mysql::common
@@ -7,10 +8,10 @@ class mysql::administration {
 #   modules/cognac/manifests/classes/mysql-slave.pp)
 # - .my.cnf for people in %mysql-admin
 
-  sudo::directive { "mysql-administration":
+  sudo::directive { 'mysql-administration':
     ensure  => present,
-    content => template("mysql/sudoers.mysql.erb"),
-    require => Group["mysql-admin"],
+    content => template('mysql/sudoers.mysql.erb'),
+    require => Group['mysql-admin'],
   }
 
 }
